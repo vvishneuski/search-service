@@ -1,0 +1,52 @@
+variables:
+    SOLUTION_FILE: "./search-service.sln"
+    BUILD_IMAGE: "mcr.microsoft.com/dotnet/sdk:6.0"
+    AWS_DEFAULT_REGION: eu-central-1
+
+stages:
+    - build
+    - test
+    - release
+
+build:
+    stage: build
+    image: $BUILD_IMAGE
+    script:
+        - dotnet build $SOLUTION_FILE
+
+test:
+    stage: test
+    image: $BUILD_IMAGE
+    script:
+        - dotnet test -p:CollectCoverage=true -p:CoverletOutputFormat=cobertura $SOLUTION_FILE --filter 'Category!~Integration'
+        - dotnet tool restore
+        - dotnet reportgenerator -reports:**/*/coverage.cobertura.xml "-reporttypes:Cobertura;TextSummary" -targetdir:artifacts/report
+        - cat artifacts/report/Summary.txt
+
+release:
+  stage: release
+  image: $BUILD_IMAGE
+  only:
+    - main
+  artifacts:
+    paths:
+      - artifacts/
+  script:
+    - dotnet publish -c Release -o artifacts/Api ./src/Api/Api.csproj
+
+.docker_script:
+  stage: build
+  image: docker:19.03.1
+  services:
+    - docker:19.03.1-dind
+  variables:
+    DOCKER_HOST: tcp://docker:2375
+  script:
+    - docker build -f ./src/Api/Dockerfile --build-arg Configuration=Release
+        --build-arg CACHEBUST=$(date +%s)
+        -t api .
+
+docker_manual:
+    when: manual
+    before_script: []
+    extends: .docker_script

@@ -1,0 +1,12 @@
+<Project>
+  <PropertyGroup Label="Build">
+    <LangVersion>preview</LangVersion>
+    <AnalysisLevel>latest</AnalysisLevel>
+    <!--<EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>-->
+    <!-- <TreatWarningsAsErrors>true</TreatWarningsAsErrors> -->
+    <!--TODO: rework during more stable phase of the project -->
+    <NoWarn>VSTHRD111;CS1591;CA2007;CA1014;$(NoWarn)</NoWarn>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+</Project>

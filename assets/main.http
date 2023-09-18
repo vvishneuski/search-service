@@ -1,0 +1,23 @@
+@BASE_URL=https://localhost:5001/api
+
+###
+
+POST {{BASE_URL}}/search
+content-type: application/json
+
+{
+  "request": {
+    "primaryKey": "id",
+    "collectionName": "employee",
+    "query": "employee/v1/lookup?q=test@some.com",
+    "descendants": [
+        {
+            "primaryKey": "id",
+            "collectionName": "location_city",
+            "parentPath": "location.city.id",
+            "query": "location/v1/"
+        }
+    ]
+  },
+  "mapping": "[].{ email: employee.email, id: employee.id, location: location_city.path }"
+}
