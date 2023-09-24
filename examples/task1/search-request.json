@@ -1,0 +1,19 @@
+﻿{
+  "request": {
+    "primaryKey": "global_user_id",
+    "query": "v2/epampersonpublic/search?q=business_email==${advisor:email}",
+    "parentPath": "",
+    "collectionName": "employee",
+    "descendants": [
+      {
+        // primaryKey as jmesPath
+        "primaryKey": "objectIds.id",
+        // {{parents}} array of parent keys to lookup entities from another data set
+        "query": "v2/skill-link/search?q=objectIds.id=in=({{parents}})&fields=objectIds.id,spokenLanguages.skillName",
+        "parentPath": "employee.global_user_id",
+        "collectionName": "spoken_languages"
+      }
+    ]
+  },
+  "mapping": "[0].spoken_languages"
+}

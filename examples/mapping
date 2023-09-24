@@ -1,0 +1,23 @@
+﻿[*].{
+  email: employee.business_email,
+  id: employee.global_user_id,
+  program: mentor_request.catalog_item_id,
+  programRunId: mentor_request.linked_children_catalog_item_ids,
+  spokenLanguages: employee.languages[].language.name,
+  trackLevel: join('', reverse(sort_by(employee.track_level, &type))[].name),
+  capacity: mentor_request.capacity,
+  workload: availia_participation.workload || `0`,
+  available_till: availia_roller_global.available_till || '',
+  unavailable_till: availia_roller_global.unavailable_till || '',
+  lastAssignedAt: availia_participation.last_assigned_at || '',
+  timeZoneDiff: abs(sum([timezone_source.timeZone.offset || `0`, invert(`${timezoneOffset}`)]))
+}
+  | [? id != '${preferredAdvisor:user-global-id}']
+  | [? unavailable_till == '' || '${:now}' > unavailable_till ]
+  | [? contains(programRunId, '${programRunId}') ]
+  | [? trackLevel >= '${trackLevel}' ]
+  | [? spokenLanguages[? contains('${preferredLanguages:iso3-language}', @) == `true` ] ]
+  | [? capacity == null || workload < capacity ]
+  | sort_by(@, &timeZoneDiff)
+  | sort_by(@, &lastAssignedAt)
+  | sort_by(@, &trackLevel)

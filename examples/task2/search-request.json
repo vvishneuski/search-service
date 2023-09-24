@@ -1,0 +1,17 @@
+﻿{
+  "request": {
+    "primaryKey": "global_user_id",
+    "query": "v2/epampersonpublic/search?q=business_email==${employee:email}",
+    "parentPath": "",
+    "collectionName": "employee",
+    "descendants": [
+      {
+        "primaryKey": "_key",
+        "query": "v2/locations",
+        "parentPath": "employee.worksite_location[?type=='Country'].id|[0]",
+        "collectionName": "location"
+      }
+    ]
+  },
+  "mapping": "[0].location"
+}

@@ -1,0 +1,32 @@
+﻿{
+  "primaryKey": "_key",
+  "query": "v2/mentor-requests/search?v=${:now}&q=catalog_item_id==${programId} and linked_children_catalog_item_ids==${programRunId} and status=in=(Verified,Involved)",
+  "collectionName": "mentor_request",
+  "descendants": [
+    {
+      "primaryKey": "_key",
+      "collectionName": "employee",
+      "parentPath": "mentor_request.user_global_id",
+      "query": "v2/epampersonpublic"
+    },
+    {
+      "primaryKey": "_key",
+      "collectionName": "availia_roller_global",
+      "parentPath": "join('|', [mentor_request.user_global_id, ''])",
+      "query": "v2/availia-rollers"
+    },
+    {
+      "primaryKey": "_key",
+      "collectionName": "availia_participation",
+      "parentPath": "join('|', ['${mentorboardId}', mentor_request.user_global_id, 'advisor'])",
+      "query": "v2/availia-participations"
+    },
+    {
+      "primaryKey": "id",
+      "collectionName": "timezone_source",
+      "parentPath": "mentor_request.user_global_id",
+      "query": "employee/v1"
+    }
+  ],
+  "parentPath": ""
+}
