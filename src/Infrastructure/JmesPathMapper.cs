@@ -1,5 +1,6 @@
 namespace SearchService.Infrastructure;
 
+using System.Text.Json.Nodes;
 using DevLab.JmesPath;
 using JmesPathFunctions;
 

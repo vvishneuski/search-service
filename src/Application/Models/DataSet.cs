@@ -1,6 +1,7 @@
 namespace SearchService.Application.Models;
 
 using System.Text.Json.Nodes;
+using DevLab.JmesPath;
 using Utils;
 
 public sealed class DataSet
@@ -8,13 +9,13 @@ public sealed class DataSet
     private string PrimaryKey { get; }
     public Dictionary<string, JsonNode> Items { get; }
 
-    public DataSet(string primaryKey, JsonArray data)
+    public DataSet(Func<JsonNode, string, string> primaryKeySelector, string primaryKey, JsonArray data)
     {
         this.PrimaryKey = primaryKey;
 
         this.Items = data
             .Select(item => item?.Copy())
-            .GroupBy(item => item?[this.PrimaryKey]?.ToString())
+            .GroupBy(item => primaryKeySelector(item!, this.PrimaryKey))
             .ToDictionary(grouping => grouping.Key!, ObjectOrArray!);
     }
 

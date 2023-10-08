@@ -14,6 +14,7 @@
     <PackageReference Include="MassTransit.Analyzers" Version="8.0.6"/>
     <PackageReference Include="Polly" Version="7.2.2"/>
     <PackageReference Include="Microsoft.Extensions.Http.Polly" Version="6.0.2"/>
+    <PackageReference Include="RSql4Net" Version="1.0.0" />
     <PackageReference Include="VaultSharp" Version="1.7.1"/>
   </ItemGroup>
 
@@ -21,5 +22,6 @@
     <ProjectReference Include="..\Application\Application.csproj"/>
     <ProjectReference Include="..\SomeApi.Sdk\SomeApi.Sdk.csproj"/>
   </ItemGroup>
+
 
 </Project>

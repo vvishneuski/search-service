@@ -1,9 +1,13 @@
 namespace SearchService.Application.UnitTests;
 
+using System.Text.Json.Nodes;
 using Commands;
 using Exceptions;
 using Infrastructure;
+using Infrastructure.Query;
 using Models;
+using Moq;
+using SomeApi.Sdk;
 
 public class SearchEngineTests
 {
@@ -116,7 +120,7 @@ public class SearchEngineTests
                             PrimaryKey = "global_user_id",
                             ParentPath = "mentor_request.user_id",
                             CollectionName = "employee",
-                            Query = "/v1/employee"
+                            Query = "/v1/employee",
                         }
                     }
                 }
@@ -431,5 +435,89 @@ public class SearchEngineTests
     }
 ]
 ");
+    }
+
+        [Fact]
+    public async Task ResolveParentsPlaceholder_IdsAreSubstituted()
+    {
+        const string
+            rootRequest = "v2/epampersonpublic/search?q=business_email==podkolzzin1996@gmail.com",
+            childRequest = "v2/skill-link/search?q=objectIds.id=in=(17,19)&fields=objectIds.id,spokenLanguages,skillName";
+
+        var api = new Mock<ISomeApiHttpClient>();
+        api.Setup(x => x.GetByQueryAsync(rootRequest, default))
+            .ReturnsAsync((JsonArray)JsonNode.Parse("""
+                                                    [
+                                                      {
+                                                        "global_user_id": 17,
+                                                        "business_email": "podkolzzin1996@gmail.com"
+                                                      },
+                                                      {
+                                                        "global_user_id": 19,
+                                                        "business_email": "podkolzzin1996@gmail.com"
+                                                      }
+                                                    ]
+                                                    """)!);
+        api.Setup(x => x.GetByReverseLookupAsync(childRequest, It.IsAny<IEnumerable<string>>(), default))
+            .ReturnsAsync((JsonArray)JsonNode.Parse("""
+                                                    [
+                                                        {
+                                                            "objectIds":[
+                                                                {"id": 17 },
+                                                                {"id": 24 }
+                                                            ],
+                                                            "spokenLanguages":  [ "UA", "EN" ],
+                                                            "skillName": ".NET"
+                                                        }
+                                                    ]
+                                                    """)!);
+
+        var sut = new SearchEngine(api.Object, new Binder(new [] { new ParentResolver() }));
+
+        var responsePayload =
+            await sut.SearchAsync(
+                new SearchCommand
+                {
+                    Request = new ()
+                    {
+                        PrimaryKey = "global_user_id",
+                        Query = "v2/epampersonpublic/search?q=business_email==podkolzzin1996@gmail.com",
+                        CollectionName = "employee",
+                        Descendants = new List<Request>()
+                        {
+                            new()
+                            {
+                                PrimaryKey = "objectIds[0].id",
+                                Query = "v2/skill-link/search?q=objectIds.id=in=({{parents}})&fields=objectIds.id,spokenLanguages,skillName",
+                                ParentPath = "employee.global_user_id",
+                                CollectionName = "spoken_languages"
+                            },
+                        }
+                    },
+                    Mapping = "[0].spoken_languages"
+                }, default);
+
+
+
+        api.Verify(x => x.GetByQueryAsync(rootRequest, default), Times.Once);
+        api.Verify(x => x.GetByReverseLookupAsync(childRequest, It.IsAny<IEnumerable<string>>(), default), Times.Once);
+
+        responsePayload.Should().BeJson("""
+                                        {
+                                          "objectIds": [
+                                            {
+                                              "id": 17
+                                            },
+                                            {
+                                              "id": 24
+                                            }
+                                          ],
+                                          "spokenLanguages": [
+                                            "UA",
+                                            "EN"
+                                          ],
+                                          "skillName": ".NET"
+                                        }
+                                        """);
     }
 }

@@ -7,6 +7,7 @@ using Messaging;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Query;
 using Services;
 using SomeApi.Sdk;
 
@@ -31,6 +32,8 @@ public static class ServiceCollectionExtensions
         }
 
         services.AddScoped<ISearchEngine, SearchEngine>();
+        services.AddTransient<IBinder, Binder>();
+        services.AddTransient<IResolver, ParentResolver>();
 
         return services;
     }
