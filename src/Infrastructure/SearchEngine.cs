@@ -1,20 +1,27 @@
 namespace SearchService.Infrastructure;
 
-using System.Text.Json.Nodes;
+using System.Text.Json;
 using Application.Commands;
 using Application.Exceptions;
 using Application.Interfaces;
 using Application.Models;
+using Query;
 using SomeApi.Sdk;
 using CollectionKeysTupleList = IEnumerable<(
     Application.Models.Request collection, IEnumerable<string>
     keys)>;
+using JsonNode = System.Text.Json.Nodes.JsonNode;
 
 public class SearchEngine : ISearchEngine
 {
     private readonly ISomeApiHttpClient httpClient;
+    private readonly IBinder? binder;
 
-    public SearchEngine(ISomeApiHttpClient httpClient) => this.httpClient = httpClient;
+    public SearchEngine(ISomeApiHttpClient httpClient, IBinder? binder = null)
+    {
+        this.httpClient = httpClient;
+        this.binder = binder;
+    }
 
     public async Task<SearchResponse> SearchAsync(
         SearchCommand request,
@@ -77,16 +84,24 @@ public class SearchEngine : ISearchEngine
         IList<Request> collections,
         CancellationToken cancellationToken)
     {
+        string PrimaryKeySelector(JsonNode node, string primaryKey)
+        {
+            var result = JmesPathMapper.Transform(node.ToString(), primaryKey);
+            var parse = JsonNode.Parse(result);
+            return parse.ToString();
+        }
+
         var rootCollection = collections.First();
         var rootData = await this.httpClient.GetByQueryAsync(rootCollection.Query, cancellationToken);
-        var rootDataSet = new DataSet(rootCollection.PrimaryKey, rootData);
+        var rootDataSet = new DataSet(PrimaryKeySelector, rootCollection.PrimaryKey, rootData);
 
         var graph = new Graph(rootCollection.CollectionName, rootDataSet);
 
         foreach (var (collection, keys) in GetNotEmptyCollectionsWithKeys(graph, collections.Skip(1)))
         {
-            var data = await this.httpClient.GetByReverseLookupAsync(collection.Query, keys, cancellationToken);
-            var dataSet = new DataSet(collection.PrimaryKey, data);
+            var boundQuery = this.binder?.Bind(collection.Query, keys, graph) ?? collection.Query;
+            var data = await this.httpClient.GetByReverseLookupAsync(boundQuery, keys, cancellationToken);
+            var dataSet = new DataSet(PrimaryKeySelector, collection.PrimaryKey, data);
 
             graph.Append(collection.CollectionName, collection.ParentPath, dataSet);
         }
